@@ -9,7 +9,7 @@ resource "aws_cloudfront_origin_access_identity" "origin_access_identity" {
 data "aws_iam_policy_document" "s3_policy" {
   statement {
     actions   = ["s3:GetObject"]
-    resources = ["${aws_s3_bucket.cloudfront_origin_bucket.arn}/*"]
+    resources = ["${data.aws_s3_bucket.cloudfront_origin_bucket.arn}/*"]
 
     principals {
       type        = "AWS"
@@ -19,7 +19,7 @@ data "aws_iam_policy_document" "s3_policy" {
 
   statement {
     actions   = ["s3:ListBucket"]
-    resources = ["${aws_s3_bucket.cloudfront_origin_bucket.arn}"]
+    resources = ["${data.aws_s3_bucket.cloudfront_origin_bucket.arn}"]
 
     principals {
       type        = "AWS"
@@ -29,7 +29,7 @@ data "aws_iam_policy_document" "s3_policy" {
 }
 
 
-resource "aws_s3_bucket_policy" "example" {
-  bucket = "${aws_s3_bucket.cloudfront_origin_bucket.id}"
+resource "aws_s3_bucket_policy" "s3_bucket_policy" {
+  bucket = "${data.aws_s3_bucket.cloudfront_origin_bucket.id}"
   policy = "${data.aws_iam_policy_document.s3_policy.json}"
 }

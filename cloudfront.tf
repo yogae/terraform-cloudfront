@@ -1,9 +1,9 @@
 locals {
-  s3_origin_bucket_id = "s3-${aws_s3_bucket.cloudfront_origin_bucket.id}"
+  s3_origin_bucket_id = "s3-${data.aws_s3_bucket.cloudfront_origin_bucket.id}"
 }
 resource "aws_cloudfront_distribution" "s3_distribution" {
   origin {
-    domain_name = "${aws_s3_bucket.cloudfront_origin_bucket.bucket_regional_domain_name}"
+    domain_name = "${data.aws_s3_bucket.cloudfront_origin_bucket.bucket_regional_domain_name}"
     origin_id   = "${local.s3_origin_bucket_id}"
 
     s3_origin_config {
@@ -19,18 +19,20 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
     min_ttl                = 0
     default_ttl            = 3600
     max_ttl                = 86400
-  }
 
-  # Cache behavior with precedence 1
-  ordered_cache_behavior {
-    path_pattern           = "/content/*"
-    allowed_methods        = ["GET", "HEAD", "OPTIONS"]
-    cached_methods         = ["GET", "HEAD"]
-    target_origin_id       = "${local.s3_origin_bucket_id}"
-    min_ttl                = 0
-    default_ttl            = 3600
-    max_ttl                = 86400
-    viewer_protocol_policy = "redirect-to-https"
+    forwarded_values {
+      query_string = false
+
+      cookies {
+        forward = "none"
+      }
+    }
+
+    lambda_function_association {
+      event_type   = "origin-response"
+      lambda_arn   = "${data.aws_lambda_function.resize_lambda_edge.qualified_arn}"
+      include_body = false
+    }
   }
 
   price_class = "PriceClass_200"
@@ -38,6 +40,13 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   viewer_certificate {
     cloudfront_default_certificate = true
   }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
   tags = {
     stage = "dev"
   }
